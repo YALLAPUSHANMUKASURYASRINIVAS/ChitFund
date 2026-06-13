@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChitLite - Chit Fund Portal</title>
+  <!-- Custom CSS stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Navbar Header -->
+    <header class="navbar">
+      <a href="#" class="nav-brand" onclick="location.reload()">
+        <div class="nav-logo">₹</div>
+        <div>
+          <span>ChitLite</span>
+          <div><small>Chit Fund Manager</small></div>
+        </div>
+      </a>
+      <!-- Active session user info and logout button -->
+      <div id="nav-user-info"></div>
+    </header>
+
+    <!-- ================= LANDING / LOGIN SCREEN ================= -->
+    <main id="view-landing" class="landing-hero d-none">
+      <div class="auth-card">
+        
+        <div class="auth-header">
+          <h2>Welcome to ChitLite</h2>
+          <p>Please log in to manage or view your chit groups</p>
+        </div>
+
+        <div class="auth-tabs">
+          <div id="tab-user" class="auth-tab active">Client Login</div>
+          <div id="tab-owner" class="auth-tab">Owner Login</div>
+        </div>
+
+        <!-- Client Login Panel -->
+        <div id="card-user-auth">
+          <form onsubmit="handleUserLogin(event)">
+            <div class="form-group">
+              <label for="user-client-id">5-Digit Client ID</label>
+              <input type="text" id="user-client-id" name="clientId" class="form-control" placeholder="e.g. 12345" required pattern="\d+">
+            </div>
+            <div class="form-group">
+              <label for="user-phone">Registered Mobile Number</label>
+              <input type="tel" id="user-phone" name="phone" class="form-control" placeholder="e.g. 9876543210" required>
+            </div>
+            <div id="user-login-error" class="text-danger mb-2" style="display: none; font-size: 0.85rem;"></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Log In to Group</button>
+          </form>
+        </div>
+
+        <!-- Owner Login & Signup Panel -->
+        <div id="card-owner-auth" class="d-none">
+          
+          <!-- Owner Log In Sub-form -->
+          <div id="owner-login-view">
+            <form onsubmit="handleOwnerLogin(event)">
+              <div class="form-group">
+                <label for="owner-username">Username</label>
+                <input type="text" id="owner-username" name="username" class="form-control" placeholder="e.g. owner" required>
+              </div>
+              <div class="form-group">
+                <label for="owner-password">Password</label>
+                <input type="password" id="owner-password" name="password" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div id="owner-login-error" class="text-danger mb-2" style="display: none; font-size: 0.85rem;"></div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Log In as Admin</button>
+            </form>
+            <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem;">
+              <a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;" onclick="toggleOwnerAuthSubView('register')">Create an Owner Account &rarr;</a>
+            </div>
+          </div>
+
+          <!-- Owner Register/Sign Up Sub-form -->
+          <div id="owner-register-view" class="d-none">
+            <form onsubmit="handleOwnerRegister(event)">
+              <div class="form-group">
+                <label for="owner-reg-fullname">Full Name</label>
+                <input type="text" id="owner-reg-fullname" name="fullName" class="form-control" placeholder="e.g. Rajesh Reddy" required>
+              </div>
+              <div class="form-group">
+                <label for="owner-reg-username">Choose Username</label>
+                <input type="text" id="owner-reg-username" name="username" class="form-control" placeholder="e.g. rajesh123" required>
+              </div>
+              <div class="form-group">
+                <label for="owner-reg-password">Choose Password</label>
+                <input type="password" id="owner-reg-password" name="password" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div id="owner-register-error" class="text-danger mb-2" style="display: none; font-size: 0.85rem;"></div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Register as Admin</button>
+            </form>
+            <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem;">
+              <a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;" onclick="toggleOwnerAuthSubView('login')">&larr; Back to Admin Login</a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ================= OWNER DASHBOARD VIEW ================= -->
+    <main id="view-owner-dashboard" class="dashboard-container d-none">
+      
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <h2>Owner Dashboard</h2>
+          <p>Configure chit fund groups, manage collections, and process bidding auctions</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('create-group-modal')">
+          ➕ Create New Chit Group
+        </button>
+      </div>
+
+      <!-- Left Sidebar (Group lists) and Right Details Grid -->
+      <div class="grid-main">
+        
+        <!-- Groups Navigation list -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>Active Chit Groups</h3>
+              </div>
+            </div>
+            <div class="groups-list" id="groups-list-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SMS Notifications simulator panel -->
+        <div>
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>💬 Sent SMS Alert Logs</h3>
+              </div>
+            </div>
+            <div class="notifications-list" id="notifications-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Selected Group detailed analytics dashboard -->
+      <div id="owner-group-detail-view" class="card d-none">
+        
+        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <h2 id="detail-group-name" style="font-size: 1.75rem;">Chit Fund A</h2>
+              <span class="badge badge-primary">ID: <span id="detail-group-id">...</span></span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+              Share this Group ID with members so they can log in directly from their phones.
+            </p>
+          </div>
+          <div id="group-actions-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stat-grid" style="margin-bottom: 2rem;">
+          <div class="stat-card">
+            <div class="stat-icon primary">💰</div>
+            <div class="stat-info">
+              <span class="stat-value" id="header-group-value">₹0</span>
+              <span class="stat-label">Total Chit Value</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon accent">🏦</div>
+            <div class="stat-info">
+              <span class="stat-value" id="header-commission-amount">₹0</span>
+              <span class="stat-label">My Comm. / Month</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon primary">📅</div>
+            <div class="stat-info">
+              <span class="stat-value" id="header-duration-months">0 months</span>
+              <span class="stat-label">Duration</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon primary">👥</div>
+            <div class="stat-info">
+              <span class="stat-value" id="header-members-joined">0 / 0</span>
+              <span class="stat-label">Members Joined</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABS CONTAINER (Ledger, Hold Auction, Import/Add Members, Payment Board) -->
+        <div class="grid-main" style="grid-template-columns: 1fr;">
+          
+          <!-- Payment Matrix Board -->
+          <div class="card" style="background: rgba(0,0,0,0.1); border-color: rgba(255,255,255,0.03);">
+            <div class="card-header">
+              <div class="card-title">
+                <h3>🗓️ Monthly Collection Board (Payment Matrix)</h3>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--text-secondary);">Click any colored cell to change payment status, mark cash payment, or edit remarks.</span>
+            </div>
+            <div class="payment-grid-container">
+              <table class="payment-matrix-table">
+                <thead>
+                  <tr id="payment-matrix-headers">
+                    <!-- Dynamic -->
+                  </tr>
+                </thead>
+                <tbody id="payment-matrix-body">
+                  <!-- Dynamic -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid-main">
+            
+            <!-- Hold Auction panel and Ledger History sheet -->
+            <div>
+              <!-- Hold Auction -->
+              <div class="card" id="auction-action-area" style="background: rgba(0,0,0,0.15); border-color: rgba(16, 185, 129, 0.15);">
+                <!-- Dynamic based on month number and member constraints -->
+              </div>
+
+              <!-- Ledger -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">
+                    <h3>📊 Chit Fund Ledger Sheet</h3>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Installment</th>
+                        <th>Winner Member</th>
+                        <th>Bid Discount</th>
+                        <th>Owner Comm.</th>
+                        <th>Dividend/Member</th>
+                        <th>Payable/Member</th>
+                        <th class="text-right">Payout Paid</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ledger-table-body">
+                      <!-- Dynamic -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Members List tab with Bulk Import dropzone -->
+            <div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">
+                    <h3>👥 Members Enrollment</h3>
+                  </div>
+                </div>
+                
+                <!-- CSV Excel Bulk Upload -->
+                <div class="file-dropzone" onclick="triggerCsvSelect()">
+                  <span class="dropzone-icon">📥</span>
+                  <div class="dropzone-text">Bulk Import from CSV/Excel</div>
+                  <div class="dropzone-subtext">Click to browse file</div>
+                  <div class="dropzone-subtext" style="font-size:0.65rem; color:var(--text-muted);">Headers: "Name", "Phone", "Email", "Language" (values: english, hindi, telugu)</div>
+                  <input type="file" id="csv-file-input" accept=".csv" onchange="handleCsvUpload(event)">
+                </div>
+                <div style="text-align: center; margin-top: -0.5rem; margin-bottom: 1.25rem;">
+                  <a href="sample_members.csv" download class="btn btn-secondary btn-sm" style="font-size:0.75rem; width: 100%; font-weight: 500;" onclick="event.stopPropagation();">
+                    📥 Download Sample Template File
+                  </a>
+                </div>
+
+                <!-- CSV Import Progress Bar -->
+                <div id="csv-upload-progress-container" class="d-none" style="margin-bottom: 1.25rem; background: rgba(0,0,0,0.25); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                    <span id="csv-upload-status">Uploading & enrolling members...</span>
+                    <span id="csv-upload-percentage">0%</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="csv-upload-bar" style="background: var(--primary); width: 0%; height: 100%; transition: width 0.2s ease-in-out;"></div>
+                  </div>
+                </div>
+
+                <!-- Add member manually -->
+                <form id="add-member-form" onsubmit="addMember(event)" style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                  <h4 style="font-size: 0.95rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">Add Member Manually</h4>
+                  <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. John Doe" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="e.g. 9876543210" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Email ID (Optional)</label>
+                    <input type="email" name="email" class="form-control" placeholder="e.g. john@example.com">
+                  </div>
+                  <div class="form-group">
+                    <label>Preferred Language</label>
+                    <select name="language" class="form-control" required>
+                      <option value="english" selected>English</option>
+                      <option value="hindi">Hindi (हिंदी)</option>
+                      <option value="telugu">Telugu (తెలుగు)</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Add Member</button>
+                </form>
+
+                <!-- Registered members list simple scrollable -->
+                <h4 style="font-size: 0.95rem; margin-top: 1.5rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Group Roster</h4>
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto; overflow-x: auto;">
+                  <table class="table" style="font-size: 0.8rem;">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Language</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="members-list-table-body">
+                      <!-- Dynamic -->
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Client Support Queries Panel -->
+        <div class="card" style="margin-top: 1.5rem; background: rgba(0,0,0,0.15); border-color: rgba(16, 185, 129, 0.15);">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>💬 Client Support Queries</h3>
+            </div>
+          </div>
+          <div id="owner-queries-container" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ================= CLIENT DASHBOARD VIEW ================= -->
+    <main id="view-user-dashboard" class="dashboard-container d-none" style="margin-top: 0; padding-top: 0.75rem; gap: 1rem;">
+      
+      <!-- Client Profile & Quick Stats Card -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(11, 15, 25, 0.5)); border-color: rgba(16, 185, 129, 0.15); margin-bottom: 0.5rem; padding: 1.1rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem;">
+          <div>
+            <span style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.7rem; color: var(--primary); font-weight: 700; display: block; margin-bottom: 0.15rem;">Client Portal Dashboard</span>
+            <h2 style="font-size: 1.7rem; font-family: Outfit; margin: 0; color: white;" id="user-profile-name">Client Name</h2>
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 1rem;">
+              <span>🆔 Client ID: <strong id="user-profile-id" style="color: white;">...</strong></span>
+              <span>📞 Phone: <strong id="user-profile-phone" style="color: white;">...</strong></span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <div style="text-align: center; background: rgba(0,0,0,0.25); padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid var(--border-color);">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Active Groups</div>
+              <strong style="font-size: 1.3rem; color: white; display: block; margin-top: 0.1rem;" id="user-stat-active-groups">0</strong>
+            </div>
+            <div style="text-align: center; background: rgba(239, 68, 68, 0.05); padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.15);">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Total Unpaid Dues</div>
+              <strong style="font-size: 1.3rem; color: var(--danger); display: block; margin-top: 0.1rem;" id="user-stat-total-dues">₹0</strong>
+            </div>
+            <div id="user-bulk-pay-container">
+              <!-- Filled via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Net Payout Alert (If current month winner) -->
+      <div id="user-net-payout-container" class="d-none">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Section: My Chit Groups -->
+      <div style="margin-bottom: 0.25rem;">
+        <h3 style="font-family: Outfit; font-size: 1.15rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; color: white;">
+          <span>👥</span> My Registered Chit Groups
+        </h3>
+        <div id="user-groups-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+          <!-- Dynamically loaded group cards -->
+        </div>
+      </div>
+
+      <!-- Section: Installment Bills and Ledger History -->
+      <div class="grid-main" style="grid-template-columns: 1.2fr 0.8fr; gap: 1.25rem;">
+        
+        <!-- My Bill installments list -->
+        <div>
+          <div class="card" style="padding: 1.25rem; margin-bottom: 0.5rem;">
+            <div class="card-header" style="padding-bottom: 0; margin-bottom: 0.75rem;">
+              <div class="card-title">
+                <h3 style="font-family: Outfit; font-size: 1.15rem;">💳 Installment Billing & Payments</h3>
+              </div>
+            </div>
+            <div id="user-payments-cards-container" style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Ledger History for Member -->
+        <div>
+          <div class="card" style="padding: 1.25rem; margin-bottom: 0.5rem;">
+            <div class="card-header" style="padding-bottom: 0; margin-bottom: 0.75rem;">
+              <div class="card-title">
+                <h3 style="font-family: Outfit; font-size: 1.15rem;">📊 Unified Auction History</h3>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Group / Month</th>
+                    <th>Winner</th>
+                    <th>Bid Disc.</th>
+                    <th>Paid (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="user-ledger-table-body">
+                  <!-- Dynamic -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Support Queries portal for member -->
+      <div class="card" style="margin-top: 0.5rem; padding: 1.25rem; margin-bottom: 0.5rem;">
+        <div class="card-header" style="margin-bottom: 1rem;">
+          <div class="card-title">
+            <h3 style="font-family: Outfit; font-size: 1.15rem;">💬 Ask Owner / Support Queries</h3>
+          </div>
+        </div>
+        <div class="grid-main" style="grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+          <!-- Submit Query Form -->
+          <div>
+            <form id="submit-query-form" onsubmit="submitClientQuery(event)">
+              <div class="form-group" style="margin-bottom: 1rem;" id="query-group-select-container"></div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="query-message-input">Write your question/inquiry here:</label>
+                <textarea id="query-message-input" name="message" class="form-control" rows="3" placeholder="e.g. Can you please verify my cash payment for month 2?" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">Submit Inquiry</button>
+            </form>
+          </div>
+          <!-- Queries status history list -->
+          <div>
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">My Inquiries</h4>
+            <div id="client-queries-list-container" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem;">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Modal: Create Group -->
+  <div class="modal-overlay" id="create-group-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="m-0">Create Chit Fund Group</h3>
+        <button class="close-btn" onclick="closeModal('create-group-modal')">&times;</button>
+      </div>
+      <form onsubmit="createGroup(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Group Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. 1 Lakh Gold Fund" required>
+          </div>
+          <div class="form-group">
+            <label>Total Chit Value (₹)</label>
+            <input type="number" name="totalValue" class="form-control" placeholder="e.g. 100000" required>
+          </div>
+          <div class="form-group">
+            <label>Duration & Number of Members</label>
+            <input type="number" name="durationMonths" class="form-control" placeholder="e.g. 20" required>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">For a standard chit fund, the number of months matches the number of members.</span>
+          </div>
+          <div class="form-group">
+            <label>My Commision per month (₹)</label>
+            <input type="number" name="commissionAmount" class="form-control" placeholder="e.g. 5000" required>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">Typically 5% of total chit value. Owner gets this every month before bidding payout.</span>
+          </div>
+          <div class="form-group">
+            <label>Previous Winners Extra Payment Amount per month (₹)</label>
+            <input type="number" name="winnerExtraAmount" class="form-control" placeholder="e.g. 1000" value="0">
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">This extra amount is added to the installments of members who have already won in previous months.</span>
+          </div>
+          <div class="form-group">
+            <label>Chit Bidding Type</label>
+            <select name="chitType" class="form-control" required>
+              <option value="auction">Auction-based Chit (Members bid discount)</option>
+              <option value="fixed">Fixed Chit (Lucky draw / Fixed winner pot)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('create-group-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Clone Group (New Phase) -->
+  <div class="modal-overlay" id="clone-group-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="m-0">Start New Phase from Group</h3>
+        <button class="close-btn" onclick="closeModal('clone-group-modal')">&times;</button>
+      </div>
+      <form onsubmit="cloneGroup(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>New Group Name</label>
+            <input type="text" id="clone-group-name" name="name" class="form-control" placeholder="e.g. 1 Lakh Gold Fund - Phase 2" required>
+          </div>
+          <div class="form-group">
+            <label>Total Chit Value (₹)</label>
+            <input type="number" id="clone-group-total-value" name="totalValue" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Duration & Number of Members</label>
+            <input type="number" id="clone-group-duration" name="durationMonths" class="form-control" required readonly>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">Fixed to match the number of members in the existing roster.</span>
+          </div>
+          <div class="form-group">
+            <label>My Commission per month (₹)</label>
+            <input type="number" id="clone-group-commission" name="commissionAmount" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Previous Winners Extra Payment Amount per month (₹)</label>
+            <input type="number" id="clone-group-extra" name="winnerExtraAmount" class="form-control" value="0">
+          </div>
+          <div class="form-group">
+            <label>Chit Bidding Type</label>
+            <select id="clone-group-type" name="chitType" class="form-control" required>
+              <option value="auction">Auction-based Chit (Members bid discount)</option>
+              <option value="fixed">Fixed Chit (Lucky draw / Fixed winner pot)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('clone-group-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Start New Chit Phase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Owner Record/Edit Payment -->
+  <div class="modal-overlay" id="payment-edit-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="m-0">Record Payment</h3>
+        <button class="close-btn" onclick="closeModal('payment-edit-modal')">&times;</button>
+      </div>
+      <form onsubmit="savePaymentUpdate(event)">
+        <div class="modal-body">
+          <div style="font-size: 0.95rem; margin-bottom: 1rem;">
+            Member: <strong id="modal-pay-member-name">...</strong><br/>
+            Billing Month: <strong id="modal-pay-month-num">...</strong><br/>
+            Amount Due: <strong style="color: var(--primary); font-size: 1.1rem;" id="modal-pay-amount">₹0.00</strong>
+          </div>
+
+          <div id="payment-log-info"></div>
+
+          <div class="form-group">
+            <label>Payment Status</label>
+            <select id="payment-status-select" class="form-control" required>
+              <option value="unpaid">Unpaid / Pending</option>
+              <option value="paid">Paid / Cleared</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select id="payment-method-select" class="form-control">
+              <option value="cash">Cash In Hand</option>
+              <option value="bank_transfer">Bank Transfer (GPay/UPI/IMPS)</option>
+              <option value="gateway_online">Gateway Online</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Additional Notes / Remarks</label>
+            <textarea id="payment-notes-input" class="form-control" placeholder="e.g. Received cash at office, GPay ref code, etc." rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('payment-edit-modal')">Close</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Member -->
+  <div class="modal-overlay" id="edit-member-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="m-0">Edit Member Details</h3>
+        <button class="close-btn" onclick="closeModal('edit-member-modal')">&times;</button>
+      </div>
+      <form onsubmit="saveMemberUpdate(event)">
+        <div class="modal-body">
+          <input type="hidden" id="edit-member-id" name="id">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="edit-member-name" name="name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="edit-member-phone" name="phone" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Email ID (Optional)</label>
+            <input type="email" id="edit-member-email" name="email" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Preferred Language</label>
+            <select id="edit-member-language" name="language" class="form-control" required>
+              <option value="english">English</option>
+              <option value="hindi">Hindi (हिंदी)</option>
+              <option value="telugu">Telugu (తెలుగు)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('edit-member-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Official Razorpay Checkout Script -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Client-side JS controllers -->
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "owners": [
+    {
+      "id": "6a6044cb-f8a2-4e16-928d-c507470e144d",
+      "createdAt": "2026-06-07T18:15:32.186Z",
+      "username": "owner",
+      "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "fullName": "Chit Fund Administrator"
+    }
+  ],
+  "groups": [],
+  "members": [],
+  "auctions": [],
+  "payments": [],
+  "notifications": []
+}
