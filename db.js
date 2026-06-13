@@ -4,13 +4,18 @@ const crypto = require('crypto');
 // Load environment configurations (will be loaded by server.js, but fallback load here is safe)
 require('dotenv').config();
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'chitfund_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '1234'
-});
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : new Pool({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'chitfund_db',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '1234'
+    });
 
 // Helper to run query
 async function query(text, params) {
