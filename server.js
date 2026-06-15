@@ -166,7 +166,31 @@ async function dispatchNotification(groupId, member, type, message, isTest = fal
     const recipientEmail = member.email ? member.email.trim() : null;
     if (recipientEmail && !isTest && !isTestNumber) {
       try {
-        if (process.env.SENDGRID_API_KEY) {
+        if (process.env.BREVO_API_KEY) {
+          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'api-key': process.env.BREVO_API_KEY,
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              sender: {
+                name: 'ChitLite Portal',
+                email: process.env.EMAIL_USER || 'yallapushanmukha519@gmail.com'
+              },
+              to: [{ email: recipientEmail }],
+              subject: 'Chit Fund Alert Details',
+              textContent: message
+            })
+          });
+
+          if (!brevoRes.ok) {
+            const errData = await brevoRes.json().catch(() => ({}));
+            throw new Error(`Brevo API failed with status ${brevoRes.status}: ${JSON.stringify(errData)}`);
+          }
+          console.log(`[Brevo Email Sent to ${recipientEmail}]`);
+        } else if (process.env.SENDGRID_API_KEY) {
           const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST',
             headers: {
@@ -180,6 +204,7 @@ async function dispatchNotification(groupId, member, type, message, isTest = fal
               content: [{ type: 'text/plain', value: message }]
             })
           });
+
           if (!sgRes.ok) {
             const errData = await sgRes.json().catch(() => ({}));
             throw new Error(`SendGrid API failed with status ${sgRes.status}: ${JSON.stringify(errData)}`);
