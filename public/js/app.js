@@ -1,5 +1,8 @@
 // API Endpoints Base
-const API_BASE = '/api';
+const API_BASE = (window.location.origin.startsWith('file://') || window.location.hostname === 'localhost' || window.location.hostname === '')
+  ? 'https://chitlite-portal.onrender.com/api'
+  : '/api';
+
 
 // Application State
 const state = {

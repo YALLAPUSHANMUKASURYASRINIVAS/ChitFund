@@ -1,0 +1,8 @@
+{
+  "appId": "com.chitlite.app",
+  "appName": "ChitLite",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  }
+}

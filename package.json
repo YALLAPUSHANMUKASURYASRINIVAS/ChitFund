@@ -6,13 +6,16 @@
   "scripts": {
     "start": "node server.js",
     "test": "node test_api.js",
-    "db:clean": "node clean_db.js"
+    "db:clean": "node clean_db.js",
+    "cap:sync": "cap sync",
+    "cap:open": "cap open android"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@capacitor/core": "^8.4.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -22,5 +25,9 @@
     "pg": "^8.21.0",
     "razorpay": "^2.9.6",
     "twilio": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0"
   }
 }
