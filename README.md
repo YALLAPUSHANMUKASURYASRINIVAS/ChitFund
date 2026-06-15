@@ -1,6 +1,6 @@
 # ChitLite - Chit Fund Manager
 
-ChitLite is a modern, responsive, and premium web application designed to manage chit fund groups, streamline collections, handle monthly bidding auctions, and automate payment confirmations. 
+ChitLite is a modern, responsive, and premium web application designed to manage chit fund groups, streamline collections, handle monthly bidding auctions, automate payment confirmations, and sync member payments.
 
 Built with a sleek, interactive dark theme and rich custom animations, it provides a comprehensive administrative dashboard for owners and a simplified portal for clients.
 
@@ -13,7 +13,7 @@ Built with a sleek, interactive dark theme and rich custom animations, it provid
 - **Roster Enrollment**: Add members manually or import them in bulk using a CSV spreadsheet template.
 - **New Phase Cloning**: Duplicate an existing group's roster to start a new phase with one click.
 - **Bidding Auctions**: Hold monthly auctions, select winners, and calculate discount-based dividends.
-- **Bues Collection matrix**: View and update a grid-style payment matrix. Mark manual bank/cash payments, and edit remarks.
+- **Dues Collection Matrix**: View and update a grid-style payment matrix. Mark manual bank/cash payments, and edit remarks.
 - **Support Portal**: Receive support queries from clients and write replies.
 - **Double-Click Protection**: Automated submission disabling and spinners block duplicate API requests and prevent clone group/duplicate group creations.
 
@@ -27,33 +27,23 @@ Built with a sleek, interactive dark theme and rich custom animations, it provid
 
 ---
 
+## 📂 Project Documentation Directory
+
+To learn more about the technical details of the project, check out these guides:
+- 🚀 **[Local Run Script (run_local.bat)](file:///d:/ra/chitfund/run_local.bat)**: Setup and start the project locally on Windows.
+- 📐 **[System Design (system_design.md)](file:///d:/ra/chitfund/system_design.md)**: Database schemas (ERD), auction mathematics, and communication architectures.
+- 🏗️ **[Code Architecture (code_architecture.md)](file:///d:/ra/chitfund/code_architecture.md)**: Component layering, API routes list, and state management details.
+- 📝 **[Interview Coding Guide (interview_guide.md)](file:///d:/ra/chitfund/interview_guide.md)**: Typical interview questions, algorithmic implementations, and complexity analyses.
+
+---
+
 ## 🛠️ Technology Stack
 
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL (using `pg` client pool)
 - **Frontend**: Vanilla HTML5, CSS3, ES6 JavaScript
 - **Payments**: Razorpay Gateway Integration
-- **Alerts**: Twilio API (SMS Alerts), NodeMailer (Email Alerts)
-
----
-
-## 📁 Project Structure
-
-```
-d:\ra\chitfund
-├── clean_db.js              # Wipes test auction, payment, and notification records
-├── db.js                    # PostgreSQL pool configurations and table initializations
-├── package.json             # NPM project manifest
-├── server.js                # Core Express server and REST API handlers
-├── public/                  # Frontend static files
-│   ├── css/
-│   │   └── style.css        # Premium custom stylesheet (fonts, variables, animations)
-│   ├── js/
-│   │   └── app.js           # Client-side routing, controllers, and payment integration
-│   ├── index.html           # Main SPA template housing login, owner, and client dashboards
-│   └── sample_members.csv   # Downloadable template for bulk member imports
-└── test_*.js                # Comprehensive integration test suites
-```
+- **Alerts**: Twilio API (SMS Alerts), Brevo API / NodeMailer (Email Alerts)
 
 ---
 
@@ -66,16 +56,16 @@ Create a `.env` file in the root directory and configure the following parameter
 PORT=5000
 NODE_ENV=development
 
-# Database Config
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=chitfund_db
-DB_USER=postgres
-DB_PASSWORD=your_password
+# Database Config (Supabase PostgreSQL URL)
+DATABASE_URL=postgresql://postgres.csbbzqbkllqmxurgncyf:password@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
 
 # JWT Auth Secret
 JWT_SECRET=your_secure_jwt_secret_string
 JWT_EXPIRE=7d
+
+# Email Configuration (Brevo HTTP API)
+EMAIL_USER=your_verified_sender_email@gmail.com
+BREVO_API_KEY=your_brevo_api_key
 
 # SMS Config (Twilio)
 TWILIO_ACCOUNT_SID=your_twilio_sid
@@ -95,22 +85,26 @@ Upon startup, the server automatically checks and initializes the following Post
 1. **`owners`**: Contains administrative credentials.
 2. **`groups`**: Contains group settings, parameters, and current month number.
 3. **`members`**: Stores member registrations mapped to group IDs and unique client IDs.
-4. **`auctions`**: Stores monthly auction log logs, winners, bid discounts, and payout calculations.
+4. **`auctions`**: Stores monthly auction logs, winners, bid discounts, and payout calculations.
 5. **`payments`**: Tracks individual monthly bill installments, billing status (`paid`/`unpaid`), and transaction details.
 6. **`notifications`**: Logs all simulated/sent SMS and email alerts.
 7. **`queries`**: Stores support questions and administrative replies.
 
 ---
 
-## 📥 Installation & Startup
+## 📥 Installation & Startup (Locally on a New PC)
 
+### Automate with Run Script
+If you are on Windows, simply double-click **`run_local.bat`** in the project directory. It will automate the entire process for you!
+
+### Manual Installation
 1. **Install Dependencies**:
    ```bash
    npm install
    ```
 
 2. **Initialize Owner/Admin Account**:
-   Ensure PostgreSQL is running and runs:
+   Ensure PostgreSQL is running and execute:
    ```bash
    node reset_owner.js
    ```
@@ -132,7 +126,7 @@ Automated integration test suites are provided to verify API integrity and trans
    ```bash
    npm test
    ```
-   *Runs `test_api.js` testing server health, admin auth, group creation, member enroll, and client login.*
+   *Runs `test_api.js` testing server health, admin auth, group creation, member enrollment, and client login.*
 
 2. **Verify Support Queries & Premium Payments**:
    ```bash
