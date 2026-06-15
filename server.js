@@ -166,15 +166,36 @@ async function dispatchNotification(groupId, member, type, message, isTest = fal
     const recipientEmail = member.email ? member.email.trim() : null;
     if (recipientEmail && !isTest && !isTestNumber) {
       try {
-        await emailTransporter.sendMail({
-          from: `"ChitLite Portal" <${process.env.EMAIL_USER}>`,
-          to: recipientEmail,
-          subject: 'Chit Fund Alert Details',
-          text: message
-        });
-        console.log(`[Nodemailer Email Sent to ${recipientEmail}]`);
+        if (process.env.SENDGRID_API_KEY) {
+          const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`
+            },
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: recipientEmail }] }],
+              from: { email: process.env.EMAIL_USER || 'yallapushanmukha519@gmail.com', name: 'ChitLite Portal' },
+              subject: 'Chit Fund Alert Details',
+              content: [{ type: 'text/plain', value: message }]
+            })
+          });
+          if (!sgRes.ok) {
+            const errData = await sgRes.json().catch(() => ({}));
+            throw new Error(`SendGrid API failed with status ${sgRes.status}: ${JSON.stringify(errData)}`);
+          }
+          console.log(`[SendGrid Email Sent to ${recipientEmail}]`);
+        } else {
+          await emailTransporter.sendMail({
+            from: `"ChitLite Portal" <${process.env.EMAIL_USER}>`,
+            to: recipientEmail,
+            subject: 'Chit Fund Alert Details',
+            text: message
+          });
+          console.log(`[Nodemailer Email Sent to ${recipientEmail}]`);
+        }
       } catch (err) {
-        console.error(`[Nodemailer Email Fail to ${recipientEmail}]:`, err.message);
+        console.error(`[Email Fail to ${recipientEmail}]:`, err.message);
         status = 'failed';
         errorMsg = err.message;
       }
