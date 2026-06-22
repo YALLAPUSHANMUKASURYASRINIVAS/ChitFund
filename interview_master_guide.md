@@ -44,6 +44,18 @@ Before diving into the system design, it is essential to understand the core ter
 * **Stateless Authentication (JWT - Used by us)**:
   * The server signs a payload containing user details (ID, role) and sends it to the client. The server does not store the token. When the client sends the token back, the server verifies the signature mathematically using its secret key. This is highly scalable because the server performs no database lookups for session validation.
 
+---
+
+### B.5 Key Node.js Ecosystem Libraries (cors, dotenv, jsonwebtoken)
+* **`cors` (Cross-Origin Resource Sharing)**:
+  * An Express middleware package used to configure Cross-Origin Resource Sharing. By default, browsers prevent scripts on one origin (like a local mobile app) from making API requests to a different domain (like Supabase or Render) unless permitted. `cors` whitelists authorized origins so browser security policies don't block client API calls.
+* **`dotenv`**:
+  * A zero-dependency library that loads environment variables from a local `.env` file into Node's runtime memory (`process.env`). This keeps sensitive secrets (like database credentials, twilio/brevo keys) secure, out of source control (`.gitignore`), and easily configurable across development and production environments.
+* **`jsonwebtoken` (JWT)**:
+  * A library used to create (sign), verify, and decode JSON Web Tokens. It allows us to build **Stateless Authentication**. The server cryptographically signs a payload (user ID, role) and sends it to the browser. The client sends it back in headers on subsequent requests, and the server validates the signature mathematically without database lookups.
+
+---
+
 ### C. What is "Vanilla JS"?
 * **The Ice Cream Analogy**: Just like **vanilla** ice cream is plain, simple, and has no added toppings or extra artificial flavors, **Vanilla JS** is pure JavaScript as defined by the ECMAScript standard (ES6+), running directly in the browser with no extra toppings (no React, no Angular, no Vue, no jQuery).
 * **What it looks like in our project**: Instead of using custom framework constructs (like React components, hooks like `useState`, or state selectors), we write browser-native commands:
@@ -276,6 +288,71 @@ FUNCTION verifySignatureAndConfirm(razorpayOrderId, razorpayPaymentId, razorpayS
         RETURN ERROR "Fraudulent Transaction"
     }
 }
+```
+
+---
+
+### D. Bulk Member Roster Enrollment (CSV File Upload via Multer)
+Uses `multer` middleware to parse binary file uploads on `multipart/form-data` requests, read the buffer in memory, validate rows, and insert members in a database transaction block.
+
+```
+// Step 1: Configure Multer middleware (stores file in memory buffer)
+IMPORT multer
+SET upload = multer(storage: memoryStorage)
+
+// Step 2: Route Controller with Multer middleware
+app.POST('/api/groups/:groupId/members/bulk', upload.single('file'), FUNCTION(req, res) {
+    SET groupId = req.params.groupId
+    
+    // Check if file was uploaded
+    IF NOT req.file RETURN ERROR "No file uploaded"
+
+    // Convert binary buffer to readable string
+    SET csvData = req.file.buffer.toString('utf-8')
+    SET lines = csvData.split('\n') // Split by rows
+    
+    SET enrolledMembers = []
+    
+    START DATABASE TRANSACTION
+    TRY
+        // Loop through each line (skip the header row)
+        FOR i FROM 1 TO lines.length - 1 {
+            SET line = lines[i].trim()
+            IF line === "" CONTINUE // Skip empty lines
+            
+            // Split row into columns
+            SET columns = line.split(',')
+            SET name = columns[0].trim()
+            SET phone = columns[1].trim()
+            SET email = columns[2].trim()
+            SET language = columns[3] ? columns[3].trim() : 'english'
+            
+            // Validation Checks
+            IF NOT validateEmail(email) OR NOT validatePhone(phone) {
+                ROLLBACK TRANSACTION
+                RETURN ERROR "Validation failed on row " + i
+            }
+            
+            // Generate a unique 5-digit Client ID (e.g. "48291")
+            SET clientId = generateUnique5DigitId()
+
+            // Save to Database
+            SET newMember = DB.query(
+                `INSERT INTO members (group_id, client_id, name, phone, email, language) 
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                [groupId, clientId, name, phone, email, language]
+            )
+            
+            enrolledMembers.push(newMember)
+        }
+        
+        COMMIT TRANSACTION
+        RETURN res.json({ success: true, count: enrolledMembers.length })
+        
+    CATCH ERROR
+        ROLLBACK TRANSACTION
+        RETURN res.status(500).json({ error: ERROR.message })
+})
 ```
 
 ---
