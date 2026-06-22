@@ -44,25 +44,52 @@ Before diving into the system design, it is essential to understand the core ter
 * **Stateless Authentication (JWT - Used by us)**:
   * The server signs a payload containing user details (ID, role) and sends it to the client. The server does not store the token. When the client sends the token back, the server verifies the signature mathematically using its secret key. This is highly scalable because the server performs no database lookups for session validation.
 
+### C. What is "Vanilla JS"?
+* **The Ice Cream Analogy**: Just like **vanilla** ice cream is plain, simple, and has no added toppings or extra artificial flavors, **Vanilla JS** is pure JavaScript as defined by the ECMAScript standard (ES6+), running directly in the browser with no extra toppings (no React, no Angular, no Vue, no jQuery).
+* **What it looks like in our project**: Instead of using custom framework constructs (like React components, hooks like `useState`, or state selectors), we write browser-native commands:
+  * *DOM Selection*: `document.getElementById('view-landing')` or `document.querySelector('.card')`
+  * *Event Listeners*: `button.addEventListener('click', (e) => { ... })`
+  * *Web Storage*: `localStorage.setItem('userSession', ...)`
+  * *HTTP Requests*: Using the browser's native `fetch()` API.
+* **Why interviewers respect Vanilla JS**: Many developers only learn frameworks and do not understand how browsers work under the hood. Writing a full-stack project in Vanilla JS proves you have a strong core foundation in browser events, DOM rendering cycles, and memory management, all while avoiding package-bloat.
+
 ---
 
-### C. Stack Comparison: What did we use and why?
+### D. The Detailed Project Tech Stack
 
-In modern web development, teams often use predefined stacks:
-* **MERN**: **M**ongoDB, **E**xpress, **R**eact, **N**ode.js.
-* **MEAN**: **M**ongoDB, **E**xpress, **A**ngular, **N**ode.js.
-* **Vite**: A modern frontend build tool (bundler) used to compile React/Vue single-page apps.
+Our project uses a high-performance, lightweight monolith architecture:
 
-#### 1. Why we chose PostgreSQL over MongoDB (SQL vs. NoSQL)
-ChitLite manages financial transactions, ledger balances, and payment records.
-* **PostgreSQL (SQL - Used by us)**: Relational database with strict **ACID compliance** (Atomicity, Consistency, Isolation, Durability). It enforces strict schemas, foreign key constraints (preventing deleting a member who has unpaid bills), and relational queries, which are vital for accounting integrity.
-* **MongoDB (NoSQL - Used in MERN/MEAN)**: Document-oriented database. While flexible, it does not naturally enforce relational constraints or transactional boundaries across separate tables, making it less suitable for ledgers and financial applications.
+1. **Frontend (Client-side)**:
+   * **Vanilla HTML5, CSS3, and ES6 JavaScript**: Configured as a **Single Page Application (SPA)**.
+2. **Backend (Server-side)**:
+   * **Node.js** with **Express.js**: Serves static pages and provides RESTful API routes.
+   * **JWT (JSON Web Tokens)**: Secures administrative routes using signed stateless tokens.
+3. **Database Layer**:
+   * **PostgreSQL (SQL)**: Hosted on the cloud using **Supabase**.
+   * **`pg` (node-postgres)**: Direct connection client library utilizing **Connection Pooling**.
+4. **Third-Party API Integrations**:
+   * **Razorpay Gateway API**: Generates transaction orders and validates transaction signatures.
+   * **Brevo API (HTTP REST)**: Delivers transactional billing alert emails over port 443 (HTTPS).
+   * **Twilio API**: Delivers SMS reminders to clients.
+5. **Mobile Application Runtime**:
+   * **Capacitor (by Ionic)**: Packages the web assets into a native **Android application package (.apk)**.
 
-#### 2. Why we chose Vanilla HTML5/CSS3/JS over React/Angular (MERN/MEAN)
-Instead of building a heavy React/Angular SPA compiled with Vite, we built a **Vanilla JS SPA**:
-* **Zero Build Compile Step**: React/Angular requires a bundler like **Vite** or Webpack to compile JSX/TSX code into static files before deploying. Vanilla JS runs natively in all browsers without compilation.
-* **Render Deployment Speed**: Free cloud tiers on Render have strict memory limits. Compiling a React app on Render frequently runs out of memory or takes minutes. A Vanilla JS app deploys instantly because there is nothing to build.
-* **Capacitor Mobile Friendly**: Capacitor wraps standard web assets (`public` folder) directly into native WebView folders. Wrapping a compiled React/Vite app requires setting up configuration files to prevent path errors (`dist/index.html` referencing absolute bundle scripts). Vanilla HTML/JS works natively with no additional paths.
+---
+
+### E. How a Vanilla JS SPA Simplifies Mobile App Wrapping (Capacitor)
+
+Building the frontend as a pure Vanilla JS Single Page Application makes native compilation extremely straightforward:
+
+1. **Zero Build or Compile Step (No Path Errors)**:
+   * Frameworks like React/Angular require a build tool (like **Vite** or Webpack) to compile code into a build folder, outputting index files with absolute asset paths like `/assets/main.js`.
+   * When a mobile app loads pages locally from disk via **`file:///`**, absolute paths point to the phone's root directory and crash. 
+   * Since we wrote Vanilla JS, we referenced files using simple relative paths (e.g. `js/app.js`, `css/style.css`), which work natively inside a local phone folder with zero path configuration.
+2. **Smooth Native Transitions (Single Document Model)**:
+   * Navigating between separate HTML pages (e.g., `login.html` to `dashboard.html`) triggers browser reloads. On a mobile phone, this local file reloading causes a visible white flash and a laggy user experience.
+   * Our SPA keeps everything in `index.html` and toggles view sections instantly by toggling CSS visibility classes (like `.d-none`) via JavaScript. This transition is immediate, creating a smooth native app feel.
+3. **Optimized Performance & Instant Syncing**:
+   * Framework runtimes consume notable RAM and CPU cycles on budget mobile devices. Vanilla JS loads instantly with zero wrapper overhead.
+   * Synchronization is near-instantaneous. Running `npm run cap:sync` copies code edits from the `public` folder directly into the Android build assets in under a second.
 
 ---
 
@@ -253,7 +280,7 @@ FUNCTION verifySignatureAndConfirm(razorpayOrderId, razorpayPaymentId, razorpayS
 
 ---
 
-## 5. Top 10 Interview Questions & Answers
+## 5. Top 15 Interview Questions & Answers
 
 ### Q1: Explain how you bypassed Render's outbound SMTP block to deliver emails.
 **Answer:** 
@@ -323,7 +350,6 @@ In `db.js`, I configured a **Connection Pool** (`pg.Pool`). The pool maintains a
 
 ### Q9: Tell me about a challenging bug you faced during the project and how you solved it.
 **Answer:**
-*Example Answer:*
 During the email notification testing, we encountered an `ENETUNREACH` error on Render. The server couldn't resolve the SMTP server address. I investigated and found that Node's default DNS lookup prefers IPv6 addresses, but Render's internal containers do not have outgoing IPv6 network access configured on the free tier. 
 I resolved this by forcing Nodemailer connections to prefer IPv4 first in DNS resolution (by setting `family: 4` inside the transporter lookup configuration). Later, when port blocking still interrupted SMTP traffic, I completely transitioned the mail system to Brevo's HTTP API over Port 443, which bypasses firewalls completely.
 
@@ -333,6 +359,44 @@ I resolved this by forcing Nodemailer connections to prefer IPv4 first in DNS re
 **Answer:**
 Instead of typing out dozens of members manually, administrators can download a template CSV file (`sample_members.csv`). The admin fills out the columns (Name, Phone, Email) and uploads the file. 
 The backend parses the file line-by-line, runs validation (checks for valid email formats and phone numbers), generates unique 5-digit Client IDs for each member, and executes a batch insert into the database.
+
+---
+
+### Q11: What is the difference between `localStorage` and `sessionStorage` in the browser? How does your project use it?
+**Answer:**
+* **`localStorage`**: Persists data with no expiration time. The data remains even if the user closes the tab, closes the browser, or restarts their computer.
+* **`sessionStorage`**: Clears data automatically as soon as the page session ends (i.e., when the user closes that specific browser tab).
+* **Our Project Usage**: In ChitLite, we use `localStorage` to save user sessions (`ownerSession` and `userSession`). This prevents the owner or client from having to re-authenticate or type their Client ID every single time they refresh the page or reopen their browser.
+
+---
+
+### Q12: How does Razorpay check out secure digital payments? Explain HMAC-SHA256 signature verification.
+**Answer:**
+When a client completes an online payment via the Razorpay popup, Razorpay returns an `order_id`, `payment_id`, and a cryptographic `signature`. 
+To prevent clients from forging fake payment confirmations (sending fake successful network logs), the backend verifier computes its own signature locally. It concatenates the order ID and payment ID with a pipe character (`order_id + "|" + payment_id`) and hashes it using **HMAC-SHA256** with the private `RAZORPAY_KEY_SECRET` as the key.
+If our computed hash matches the client-provided `signature`, the payment is verified as authentic and marked as `paid` in the database.
+
+---
+
+### Q13: What is CORS (Cross-Origin Resource Sharing)? Why did you configure it?
+**Answer:**
+CORS is a browser-enforced security mechanism that prevents web applications from requesting resources from a domain different from the one that served the app. For example, a script loaded from `http://localhost:5000` cannot fetch APIs from `https://api.supabase.com` unless the server explicitly sends header configurations permitting it.
+In ChitLite, we configure Express `cors` middleware to whitelist only authorized client domains, ensuring malicious origins cannot run script-based requests against our backend REST controllers.
+
+---
+
+### Q14: Explain what a Webhook is and why it is useful in production payment applications.
+**Answer:**
+A Webhook is a server-to-server HTTP POST request triggered by an event (like a successful charge or invoice dispute on Razorpay).
+If a client completes a payment but closes their phone browser immediately before the browser can trigger the client-side confirmation fetch, the transaction remains `unpaid` in the database. 
+A webhook resolves this by having Razorpay call our backend API directly server-to-server. This guarantees that the payment is logged and dues are cleared, regardless of client-side browser crashes or network drops.
+
+---
+
+### Q15: Explain how the custom query benchmarking and execution logger (`query`) function works in `db.js`.
+**Answer:**
+The `query` helper wrapped around PostgreSQL client requests benchmarks database latency. It records the millisecond timestamp before execution, runs the query, and subtracts the original timestamp to measure duration.
+If `process.env.NODE_ENV` is set to `development`, it outputs the SQL text, execution duration, and row counts to console logs to assist developers in profiling queries. In production, this logging is disabled to preserve server latency and protect client privacy.
 
 ---
 
