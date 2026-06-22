@@ -24,6 +24,48 @@ ChitLite is a digital management system for **Chit Funds** (rotating savings and
 
 ---
 
+## 1.5 Core Web Concepts & Tech Stack Definitions
+
+Before diving into the system design, it is essential to understand the core terminology and technology stack choices.
+
+### A. Authentication vs. Authorization vs. Auth Token
+* **Authentication (AuthN) - "Who are you?"**:
+  * The process of verifying a user's identity. In ChitLite, this occurs when an admin enters their username and password, or when a client enters their Client ID and phone number.
+* **Authorization (AuthZ) - "What are you allowed to do?"**:
+  * The process of verifying permissions. Once authenticated, the system checks if you are an **Admin** (allowed to create groups, run auctions, and view log sheets) or a **Client** (only allowed to view your personal dues and pay bills).
+* **Auth Token (Authentication Token)**:
+  * A secure, signed string issued by the server upon successful authentication. Instead of sending credentials with every HTTP request, the client attaches this token (JWT) to the headers. The server verifies the token to identify and authorize the request.
+
+---
+
+### B. Stateful vs. Stateless Authentication
+* **Stateful Authentication (Sessions)**:
+  * The server generates a session ID, stores it in memory or a database (e.g. Redis), and sends it to the client via cookies. The server must search the database on every request to validate the session.
+* **Stateless Authentication (JWT - Used by us)**:
+  * The server signs a payload containing user details (ID, role) and sends it to the client. The server does not store the token. When the client sends the token back, the server verifies the signature mathematically using its secret key. This is highly scalable because the server performs no database lookups for session validation.
+
+---
+
+### C. Stack Comparison: What did we use and why?
+
+In modern web development, teams often use predefined stacks:
+* **MERN**: **M**ongoDB, **E**xpress, **R**eact, **N**ode.js.
+* **MEAN**: **M**ongoDB, **E**xpress, **A**ngular, **N**ode.js.
+* **Vite**: A modern frontend build tool (bundler) used to compile React/Vue single-page apps.
+
+#### 1. Why we chose PostgreSQL over MongoDB (SQL vs. NoSQL)
+ChitLite manages financial transactions, ledger balances, and payment records.
+* **PostgreSQL (SQL - Used by us)**: Relational database with strict **ACID compliance** (Atomicity, Consistency, Isolation, Durability). It enforces strict schemas, foreign key constraints (preventing deleting a member who has unpaid bills), and relational queries, which are vital for accounting integrity.
+* **MongoDB (NoSQL - Used in MERN/MEAN)**: Document-oriented database. While flexible, it does not naturally enforce relational constraints or transactional boundaries across separate tables, making it less suitable for ledgers and financial applications.
+
+#### 2. Why we chose Vanilla HTML5/CSS3/JS over React/Angular (MERN/MEAN)
+Instead of building a heavy React/Angular SPA compiled with Vite, we built a **Vanilla JS SPA**:
+* **Zero Build Compile Step**: React/Angular requires a bundler like **Vite** or Webpack to compile JSX/TSX code into static files before deploying. Vanilla JS runs natively in all browsers without compilation.
+* **Render Deployment Speed**: Free cloud tiers on Render have strict memory limits. Compiling a React app on Render frequently runs out of memory or takes minutes. A Vanilla JS app deploys instantly because there is nothing to build.
+* **Capacitor Mobile Friendly**: Capacitor wraps standard web assets (`public` folder) directly into native WebView folders. Wrapping a compiled React/Vite app requires setting up configuration files to prevent path errors (`dist/index.html` referencing absolute bundle scripts). Vanilla HTML/JS works natively with no additional paths.
+
+---
+
 ## 2. Simplified System Design
 
 ```
