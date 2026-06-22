@@ -291,3 +291,201 @@ I resolved this by forcing Nodemailer connections to prefer IPv4 first in DNS re
 **Answer:**
 Instead of typing out dozens of members manually, administrators can download a template CSV file (`sample_members.csv`). The admin fills out the columns (Name, Phone, Email) and uploads the file. 
 The backend parses the file line-by-line, runs validation (checks for valid email formats and phone numbers), generates unique 5-digit Client IDs for each member, and executes a batch insert into the database.
+
+---
+
+## 6. Core Production Source Code
+
+Here are the actual code implementations directly from the ChitLite source codebase:
+
+### A. Database Connection Pool Setup (`db.js`)
+Handles pooled connections with support for Supabase SSL requirements in production and localhost configurations in development.
+```javascript
+const { Pool } = require('pg');
+
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : new Pool({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'chitfund_db',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '1234'
+    });
+
+// Shared query helper
+async function query(text, params) {
+  const start = Date.now();
+  const res = await pool.query(text, params);
+  const duration = Date.now() - start;
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Executing Query]:', { text, duration: `${duration}ms`, rows: res.rowCount });
+  }
+  return res;
+}
+```
+
+### B. JWT Authentication Middleware (`server.js`)
+Intercepts and validates administrative client requests requesting access to protected endpoints.
+```javascript
+const jwt = require('jsonwebtoken');
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required. Please login.' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decodedUser) => {
+    if (err) {
+      return res.status(403).json({ error: 'Token expired or invalid.' });
+    }
+    req.user = decodedUser;
+    next();
+  });
+}
+```
+
+### C. Brevo Email & Twilio SMS Dispatchers (`server.js`)
+Demonstrates how Twilio (via SDK) and Brevo (via custom HTTP REST POST) are implemented to deliver real-time notifications.
+```javascript
+const twilio = require('twilio');
+const twilioClient = process.env.TWILIO_ACCOUNT_SID 
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+async function dispatchNotification(groupId, member, type, message, isTest = false) {
+  const notifId = crypto.randomUUID();
+  let status = 'sent';
+  let errorMsg = '';
+
+  if (type === 'sms') {
+    const recipientPhone = formatPhoneNumber(member.phone);
+    if (twilioClient && !isTest) {
+      try {
+        await twilioClient.messages.create({
+          body: message,
+          to: recipientPhone,
+          from: process.env.TWILIO_PHONE_NUMBER
+        });
+        console.log(`[Twilio SMS Sent to ${recipientPhone}]`);
+      } catch (err) {
+        status = 'failed';
+        errorMsg = err.message;
+      }
+    }
+  } else if (type === 'email') {
+    const recipientEmail = member.email ? member.email.trim() : null;
+    if (recipientEmail && !isTest) {
+      try {
+        if (process.env.BREVO_API_KEY) {
+          // Bypasses Render outbound SMTP blocks using Port 443 HTTPS POST
+          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'api-key': process.env.BREVO_API_KEY,
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              sender: { name: 'ChitLite Portal', email: process.env.EMAIL_USER },
+              to: [{ email: recipientEmail }],
+              subject: 'Chit Fund Alert Details',
+              textContent: message
+            })
+          });
+
+          if (!brevoRes.ok) {
+            const errData = await brevoRes.json().catch(() => ({}));
+            throw new Error(`Brevo API status ${brevoRes.status}: ${JSON.stringify(errData)}`);
+          }
+        }
+      } catch (err) {
+        status = 'failed';
+        errorMsg = err.message;
+      }
+    }
+  }
+
+  // Insert notification log to database
+  await db.query(
+    `INSERT INTO notifications (id, group_id, member_id, member_name, type, recipient, message, status, error_message) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [notifId, groupId, member.id, member.name, type, recipient, message, status, errorMsg]
+  );
+}
+```
+
+### D. Razorpay Checkout Order & Signature Verification (`server.js`)
+Demonstrates how Razorpay handles payments secure checkout transactions and verifies signatures locally.
+```javascript
+const Razorpay = require('razorpay');
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+// 1. Create Razorpay transaction order
+app.post('/api/payments/create-order', async (req, res) => {
+  const { paymentId } = req.body;
+  try {
+    const payRes = await db.query('SELECT * FROM payments WHERE id = $1', [paymentId]);
+    const payment = payRes.rows[0];
+
+    const amountInPaise = Math.round(Number(payment.amount_paid) * 100);
+    const orderOptions = {
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt: payment.id
+    };
+
+    const order = await razorpay.orders.create(orderOptions);
+    res.json({
+      success: true,
+      keyId: process.env.RAZORPAY_KEY_ID,
+      orderId: order.id,
+      amount: order.amount,
+      paymentId: payment.id
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to initiate gateway transaction' });
+  }
+});
+
+// 2. Cryptographically verify signature and mark paid
+app.post('/api/payments/verify-signature', async (req, res) => {
+  const { paymentId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  try {
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(body.toString())
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Payment signature verification failed.' });
+    }
+
+    // Safely update billing status in database
+    await db.query(
+      `UPDATE payments 
+       SET status = 'paid', payment_method = 'gateway_online', notes = $1, paid_at = NOW() 
+       WHERE id = $2`,
+      [`Razorpay Pay ID: ${razorpay_payment_id}`, paymentId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
