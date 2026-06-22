@@ -602,11 +602,47 @@ app.post('/api/payments/verify-signature', async (req, res) => {
 Below is the list of all command-line operations used in the life-cycle of the ChitLite project. These are highly useful to know if an interviewer asks how you managed dependencies, database seeding, automated testing, or mobile builds.
 
 ### A. Core Installation & Setup
-* **Install Project Dependencies**:
+* **Install All Dependencies in package.json**:
   ```bash
   npm install
   ```
-  *(Reads `package.json` to download and cache local Node modules).*
+  *(Downloads and caches all libraries defined in `package.json`).*
+
+* **Install the Entire Tech Stack (from scratch)**:
+  ```bash
+  npm install express cors dotenv jsonwebtoken pg razorpay twilio nodemailer multer marked
+  ```
+  *(Installs the backend server, database driver, payment gateway, alerts APIs, file parser, and markdown compiler in one command).*
+
+* **Install Stack Packages Individually (by Category)**:
+  * **Backend Framework & Routing**:
+    ```bash
+    npm install express cors dotenv jsonwebtoken
+    ```
+  * **PostgreSQL Database Driver**:
+    ```bash
+    npm install pg
+    ```
+  * **Razorpay Payment Gateway**:
+    ```bash
+    npm install razorpay
+    ```
+  * **Twilio SMS Alerts**:
+    ```bash
+    npm install twilio
+    ```
+  * **Nodemailer Email Alerts**:
+    ```bash
+    npm install nodemailer
+    ```
+  * **CSV Bulk Enrollment File Uploads**:
+    ```bash
+    npm install multer
+    ```
+  * **Markdown PDF Compiler Utility**:
+    ```bash
+    npm install marked
+    ```
 
 * **Seed & Reset Database**:
   ```bash
