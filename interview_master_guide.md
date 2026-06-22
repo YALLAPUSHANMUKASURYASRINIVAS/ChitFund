@@ -595,3 +595,103 @@ app.post('/api/payments/verify-signature', async (req, res) => {
 });
 ```
 
+---
+
+## 7. Complete Commands Cheat Sheet
+
+Below is the list of all command-line operations used in the life-cycle of the ChitLite project. These are highly useful to know if an interviewer asks how you managed dependencies, database seeding, automated testing, or mobile builds.
+
+### A. Core Installation & Setup
+* **Install Project Dependencies**:
+  ```bash
+  npm install
+  ```
+  *(Reads `package.json` to download and cache local Node modules).*
+
+* **Seed & Reset Database**:
+  ```bash
+  node reset_owner.js
+  ```
+  *(Creates PostgreSQL schema tables if missing and establishes default credentials: `owner` / `password123`).*
+
+* **Clean DB Transactions**:
+  ```bash
+  node clean_db.js
+  ```
+  *(Wipes payment grids, notifications, and auctions while keeping group setups and client registrations intact).*
+
+---
+
+### B. Launching the Application
+* **Run Web Server locally**:
+  ```bash
+  npm start
+  ```
+  *(Runs `node server.js` to serve backend APIs and serve the frontend at `http://localhost:5000`).*
+
+* **Automated Windows Script**:
+  ```bash
+  run_local.bat
+  ```
+  *(Automates dependency validation, environment configuration, database seeding, and starts the server in one click).*
+
+---
+
+### C. Running Integration Tests
+* **Verify Core REST APIs**:
+  ```bash
+  npm test
+  ```
+  *(Runs the test suite verifying authentication, login, group creations, and membership additions).*
+
+* **Verify Past-Winner Premiums & Queries**:
+  ```bash
+  node test_premium_and_queries.js
+  ```
+
+* **Verify Notification Templates**:
+  ```bash
+  node test_custom_features.js
+  ```
+
+* **Verify Cascading Group Deletion**:
+  ```bash
+  node test_delete_group.js
+  ```
+
+* **Verify Month Phase Cloning**:
+  ```bash
+  node test_new_phases_and_dates.js
+  ```
+
+---
+
+### D. Capacitor Mobile App Compilations
+* **Add Android Native Platform**:
+  ```bash
+  npx cap add android
+  ```
+  *(Creates the native `/android` directory containing Gradle assets and AndroidManifest configurations).*
+
+* **Sync Web Assets to Native Build**:
+  ```bash
+  npm run cap:sync
+  ```
+  *(Copies web assets from `/public` directly into the Android native asset folders).*
+
+* **Open Android Studio**:
+  ```bash
+  npm run cap:open
+  ```
+  *(Launches Android Studio and opens the native android Gradle compiler).*
+
+---
+
+### E. Study Guide Compilation
+* **Compile Markdown to PDF**:
+  ```bash
+  node scratch/generate_pdf.js
+  ```
+  *(Compiles the markdown file into HTML and triggers headless Google Chrome to print the print-ready PDF study guide).*
+
+
